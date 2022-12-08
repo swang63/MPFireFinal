@@ -119,6 +119,23 @@ namespace MissionPlanner.GCSViews
             this.lbl_wpfile = new System.Windows.Forms.Label();
             this.BUT_loadwpfile = new MissionPlanner.Controls.MyButton();
             this.BUT_saveWPFile = new MissionPlanner.Controls.MyButton();
+            this.panel6 = new System.Windows.Forms.Panel();
+            this.label13 = new System.Windows.Forms.Label();
+            this.label12 = new System.Windows.Forms.Label();
+            this.label10 = new System.Windows.Forms.Label();
+            this.label9 = new System.Windows.Forms.Label();
+            this.BUT_stopRead = new MissionPlanner.Controls.MyButton();
+            this.BUT_toggleGrid = new MissionPlanner.Controls.MyButton();
+            this.BUT_clearFire = new MissionPlanner.Controls.MyButton();
+            this.BUT_loadFire = new MissionPlanner.Controls.MyButton();
+            this.TXT_lastVisit = new System.Windows.Forms.TextBox();
+            this.TXT_gridMax = new System.Windows.Forms.TextBox();
+            this.TXT_gridSize = new System.Windows.Forms.TextBox();
+            this.label7 = new System.Windows.Forms.Label();
+            this.label8 = new System.Windows.Forms.Label();
+            this.TXT_fireFilter = new System.Windows.Forms.TextBox();
+            this.TXT_fireWindow = new System.Windows.Forms.TextBox();
+            this.TXT_fireUpdate = new System.Windows.Forms.TextBox();
             this.splitter2 = new System.Windows.Forms.Splitter();
             this.panelMap = new System.Windows.Forms.Panel();
             this.lbl_homedist = new System.Windows.Forms.Label();
@@ -230,6 +247,7 @@ namespace MissionPlanner.GCSViews
             this.panel4.SuspendLayout();
             this.panel3.SuspendLayout();
             this.panel2.SuspendLayout();
+            this.panel6.SuspendLayout();
             this.panelMap.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.trackBar1)).BeginInit();
             this.contextMenuStrip1.SuspendLayout();
@@ -677,6 +695,7 @@ namespace MissionPlanner.GCSViews
             this.flowLayoutPanel1.Controls.Add(this.panel2);
             this.flowLayoutPanel1.Controls.Add(this.panel5);
             this.flowLayoutPanel1.Controls.Add(this.panel1);
+            this.flowLayoutPanel1.Controls.Add(this.panel6);
             resources.ApplyResources(this.flowLayoutPanel1, "flowLayoutPanel1");
             this.flowLayoutPanel1.Name = "flowLayoutPanel1";
             // 
@@ -744,6 +763,128 @@ namespace MissionPlanner.GCSViews
             this.BUT_saveWPFile.Name = "BUT_saveWPFile";
             this.BUT_saveWPFile.UseVisualStyleBackColor = true;
             this.BUT_saveWPFile.Click += new System.EventHandler(this.BUT_saveWPFile_Click);
+            // 
+            // panel6
+            // 
+            this.panel6.Controls.Add(this.label13);
+            this.panel6.Controls.Add(this.label12);
+            this.panel6.Controls.Add(this.label10);
+            this.panel6.Controls.Add(this.label9);
+            this.panel6.Controls.Add(this.BUT_stopRead);
+            this.panel6.Controls.Add(this.BUT_toggleGrid);
+            this.panel6.Controls.Add(this.BUT_clearFire);
+            this.panel6.Controls.Add(this.BUT_loadFire);
+            this.panel6.Controls.Add(this.TXT_lastVisit);
+            this.panel6.Controls.Add(this.TXT_gridMax);
+            this.panel6.Controls.Add(this.TXT_gridSize);
+            this.panel6.Controls.Add(this.label7);
+            this.panel6.Controls.Add(this.label8);
+            this.panel6.Controls.Add(this.TXT_fireFilter);
+            this.panel6.Controls.Add(this.TXT_fireWindow);
+            this.panel6.Controls.Add(this.TXT_fireUpdate);
+            resources.ApplyResources(this.panel6, "panel6");
+            this.panel6.Name = "panel6";
+            // 
+            // label13
+            // 
+            resources.ApplyResources(this.label13, "label13");
+            this.label13.BackColor = System.Drawing.Color.Transparent;
+            this.label13.Name = "label13";
+            // 
+            // label12
+            // 
+            resources.ApplyResources(this.label12, "label12");
+            this.label12.BackColor = System.Drawing.Color.Transparent;
+            this.label12.Name = "label12";
+            // 
+            // label10
+            // 
+            resources.ApplyResources(this.label10, "label10");
+            this.label10.BackColor = System.Drawing.Color.Transparent;
+            this.label10.Name = "label10";
+            // 
+            // label9
+            // 
+            resources.ApplyResources(this.label9, "label9");
+            this.label9.BackColor = System.Drawing.Color.Transparent;
+            this.label9.Name = "label9";
+            // 
+            // BUT_stopRead
+            // 
+            resources.ApplyResources(this.BUT_stopRead, "BUT_stopRead");
+            this.BUT_stopRead.Name = "BUT_stopRead";
+            this.BUT_stopRead.UseVisualStyleBackColor = true;
+            this.BUT_stopRead.Click += new System.EventHandler(this.BUT_stopRead_Click);
+            // 
+            // BUT_toggleGrid
+            // 
+            resources.ApplyResources(this.BUT_toggleGrid, "BUT_toggleGrid");
+            this.BUT_toggleGrid.Name = "BUT_toggleGrid";
+            this.BUT_toggleGrid.UseVisualStyleBackColor = true;
+            this.BUT_toggleGrid.Click += new System.EventHandler(this.BUT_toggleGrid_Click);
+            // 
+            // BUT_clearFire
+            // 
+            resources.ApplyResources(this.BUT_clearFire, "BUT_clearFire");
+            this.BUT_clearFire.Name = "BUT_clearFire";
+            this.BUT_clearFire.UseVisualStyleBackColor = true;
+            this.BUT_clearFire.Click += new System.EventHandler(this.BUT_clearFire_Click);
+            // 
+            // BUT_loadFire
+            // 
+            resources.ApplyResources(this.BUT_loadFire, "BUT_loadFire");
+            this.BUT_loadFire.Name = "BUT_loadFire";
+            this.BUT_loadFire.UseVisualStyleBackColor = true;
+            this.BUT_loadFire.Click += new System.EventHandler(this.BUT_loadFire_Click);
+            // 
+            // TXT_lastVisit
+            // 
+            resources.ApplyResources(this.TXT_lastVisit, "TXT_lastVisit");
+            this.TXT_lastVisit.Name = "TXT_lastVisit";
+            this.TXT_lastVisit.TextChanged += new System.EventHandler(this.TXT_lastVisit_TextChanged);
+            // 
+            // TXT_gridMax
+            // 
+            resources.ApplyResources(this.TXT_gridMax, "TXT_gridMax");
+            this.TXT_gridMax.Name = "TXT_gridMax";
+            this.TXT_gridMax.TextChanged += new System.EventHandler(this.TXT_gridMax_TextChanged);
+            // 
+            // TXT_gridSize
+            // 
+            resources.ApplyResources(this.TXT_gridSize, "TXT_gridSize");
+            this.TXT_gridSize.Name = "TXT_gridSize";
+            this.TXT_gridSize.TextChanged += new System.EventHandler(this.TXT_gridSize_TextChanged);
+            // 
+            // label7
+            // 
+            resources.ApplyResources(this.label7, "label7");
+            this.label7.BackColor = System.Drawing.Color.Transparent;
+            this.label7.Name = "label7";
+            this.label7.Click += new System.EventHandler(this.label7_Click);
+            // 
+            // label8
+            // 
+            resources.ApplyResources(this.label8, "label8");
+            this.label8.Name = "label8";
+            this.label8.Click += new System.EventHandler(this.label8_Click);
+            // 
+            // TXT_fireFilter
+            // 
+            resources.ApplyResources(this.TXT_fireFilter, "TXT_fireFilter");
+            this.TXT_fireFilter.Name = "TXT_fireFilter";
+            this.TXT_fireFilter.TextChanged += new System.EventHandler(this.TXT_fireFilter_TextChanged);
+            // 
+            // TXT_fireWindow
+            // 
+            resources.ApplyResources(this.TXT_fireWindow, "TXT_fireWindow");
+            this.TXT_fireWindow.Name = "TXT_fireWindow";
+            this.TXT_fireWindow.TextChanged += new System.EventHandler(this.TXT_fireWindow_TextChanged);
+            // 
+            // TXT_fireUpdate
+            // 
+            resources.ApplyResources(this.TXT_fireUpdate, "TXT_fireUpdate");
+            this.TXT_fireUpdate.Name = "TXT_fireUpdate";
+            this.TXT_fireUpdate.TextChanged += new System.EventHandler(this.TXT_fireUpdate_TextChanged);
             // 
             // splitter2
             // 
@@ -1500,6 +1641,8 @@ namespace MissionPlanner.GCSViews
             this.panel3.PerformLayout();
             this.panel2.ResumeLayout(false);
             this.panel2.PerformLayout();
+            this.panel6.ResumeLayout(false);
+            this.panel6.PerformLayout();
             this.panelMap.ResumeLayout(false);
             this.panelMap.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.trackBar1)).EndInit();
@@ -1681,5 +1824,22 @@ namespace MissionPlanner.GCSViews
         private DataGridViewTextBoxColumn Dist;
         private DataGridViewTextBoxColumn AZ;
         private DataGridViewTextBoxColumn TagData;
+        public Panel panel6;
+        public TextBox TXT_lastVisit;
+        public TextBox TXT_gridMax;
+        public TextBox TXT_gridSize;
+        public Label label7;
+        public Label label8;
+        public TextBox TXT_fireFilter;
+        public TextBox TXT_fireWindow;
+        public TextBox TXT_fireUpdate;
+        public MyButton BUT_stopRead;
+        public MyButton BUT_toggleGrid;
+        public MyButton BUT_clearFire;
+        public MyButton BUT_loadFire;
+        public Label label13;
+        public Label label12;
+        public Label label10;
+        public Label label9;
     }
 }

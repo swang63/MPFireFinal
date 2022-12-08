@@ -11,6 +11,56 @@ using Newtonsoft.Json;
 
 namespace MissionPlanner.Utilities
 {
+    public class FireFile
+    {
+        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
+        public static List<FireWP> ReadFireSimFile(string file)
+        {
+            int fire_count = 0;
+            bool error = false;
+            List<FireWP> cmds = new List<FireWP>();
+            StreamReader sr = new StreamReader(File.Open(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite));
+            string Header = sr.ReadLine();
+
+            while (!error & !sr.EndOfStream)
+            {
+                string line = sr.ReadLine();
+                string[] items = line.Split(new[] { '\t', ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
+                //CustomMessageBox.Show("Lat:"+items[0] + "Lng:"+items[1]);
+                try
+                {
+                    if (fire_count == 0 && items[0] != "0")
+                    {
+                        //cmds.Add(new FireWP());
+                    }
+
+                    FireWP temp = new FireWP();
+
+                    temp.frame = (byte)int.Parse("3", CultureInfo.InvariantCulture);
+                    temp.id = (ushort)Enum.Parse(typeof(MAVLink.MAV_CMD), "44", false);
+
+                    temp.alt = (float)(double.Parse("0", CultureInfo.InvariantCulture));
+                    temp.lat = (double.Parse(items[0], CultureInfo.InvariantCulture));
+                    temp.lng = (double.Parse(items[1], CultureInfo.InvariantCulture));
+
+                    cmds.Add(temp);
+                    //CustomMessageBox.Show("Lat:"+temp.lat.ToString());
+                    fire_count++;
+
+                }
+                catch (Exception ex)
+                {
+                    log.Error(ex);
+                    CustomMessageBox.Show("Line invalid\n" + line);
+                }
+            }
+
+            sr.Close();
+            return cmds;
+
+        }
+    }
     public class WaypointFile
     {
         private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);

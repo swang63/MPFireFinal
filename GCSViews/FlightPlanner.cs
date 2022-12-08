@@ -135,6 +135,48 @@ namespace MissionPlanner.GCSViews
         public GMapPolygon wppolygon;
         private GMapMarker CurrentMidLine;
 
+        //ADDED PUBLIC PARAMETERS
+        public static double meterToDeg = 0.0000089;
+        public static double meterToDegLng = 0.0000089;
+        public static double meterToDegLat = 0.0000115;
+        public static int angGranularity = 360;
+        public static int gridSize = 500;
+        public static int gridMax = 2000;
+        //Fire map overlays
+        public GMapOverlay fireMarkers;
+        public GMapOverlay fireMarkersNew;
+        public GMapOverlay fireBound;
+        public GMapOverlay fireGridBound;
+        public GMapPolygon gridBoundBox;
+
+        //New empty parameters
+        public bool[,] fireArray = new bool[gridSize, gridSize];
+        public bool[,] fireArrayNew = new bool[gridSize, gridSize];
+        public bool[,] fireArrayPrev = new bool[gridSize, gridSize];
+        public int[,] fireTrack = new int[gridSize * gridSize, 2];
+        public bool firstLoad;
+        public double[,] maxDist = new double[360, 3];
+        public double[,] minDist = new double[360, 3];
+        public String fireFolderDirectory;
+        public int fireWindowSize;
+        public int fireWindowUpdate;
+        public int lastFileLoaded;
+        public String lastFileRead;
+        public int currFolderEnd;
+        public bool keepCheckFire = true;
+        public int currFilePlot;
+        public double[,] avgDist = new double[360, 10];
+        public IDictionary<int, double[]> fireCenterVals = new Dictionary<int, double[]>();
+        public double minDegDiff = 0.001;
+        public int fireLastVisit;
+        public double Xmin;
+        public double Ymin;
+        public double cellCONV = meterToDeg * gridMax / gridSize;
+        public double cellCONVLat = meterToDegLat * gridMax / gridSize;
+        public double cellCONVLng = meterToDegLng * gridMax / gridSize;
+        public PointLatLng FireCenter;
+        public bool gridBoxActive;
+
 
         public void Init()
         {
@@ -283,6 +325,35 @@ namespace MissionPlanner.GCSViews
 
             timer.Start();
             */
+
+            //ADD ADDITIONAL OVERLAYS
+
+            //setup fireboundGrid
+            List<PointLatLng> polygonPoints3 = new List<PointLatLng>();
+            gridBoundBox = new GMapPolygon(polygonPoints3, "gridBoundary");
+            gridBoundBox.Stroke = new Pen(Color.Red, 2);
+            gridBoundBox.Fill = Brushes.Transparent;
+
+
+            fireMarkers = new GMapOverlay("OldfireMarkers");
+            fireMarkersNew = new GMapOverlay("NewFireMarkers");
+            fireBound = new GMapOverlay("fireBoundary");
+            fireGridBound = new GMapOverlay("gridBoundary");
+
+            MainMap.Overlays.Add(fireBound);
+            MainMap.Overlays.Add(fireMarkers);
+            MainMap.Overlays.Add(fireMarkersNew);
+            MainMap.Overlays.Add(fireGridBound);
+
+            for (int i = 0; i < 360; i++)
+            {
+                maxDist[i, 0] = 0.000001;
+                minDist[i, 0] = 500;
+                maxDist[i, 1] = 0.000001;
+                minDist[i, 1] = 500;
+            }
+
+            gridBoxActive = false;
         }
 
         public static FlightPlanner instance { get; set; }
@@ -7953,5 +8024,872 @@ Column 1: Field type (RALLY is the only one at the moment -- may have RALLY_LAND
         {
             Settings.Instance["UseMissionMAVFTP"] = chk_usemavftp.Checked.ToString();
         }
+
+
+        //ADDED FIRE CODE
+
+
+        public void DiscretizeFire(List<PointLatLng> temp, int fileIndex)
+        {
+            FireCenter.Lat = (double.Parse(TXT_homelat.Text));
+            FireCenter.Lng = (double.Parse(TXT_homelng.Text));
+            gridSize = (Int32.Parse(TXT_gridSize.Text));
+
+            int avgDistIndex = fileIndex % 5;
+            foreach (PointLatLng v in temp)
+            {
+
+                double dltLat = ((v.Lat - Xmin) / cellCONVLat);
+                double dltLng = ((v.Lng - Ymin) / cellCONVLng);
+
+                int rownum = Convert.ToInt32(dltLat);
+                int colnum = Convert.ToInt32(dltLng);
+
+                if (rownum >= gridSize)
+                {
+                    rownum = gridSize - 1;
+
+                }
+                if (colnum >= gridSize)
+                {
+                    colnum = gridSize - 1;
+                }
+                double deltaX = v.Lat - FireCenter.Lat;
+                double deltaY = v.Lng - FireCenter.Lng;
+                //Calculate the angle
+                double angFactor = angGranularity / 360;
+                double Angle = Math.Atan2(deltaY, deltaX) * (180 / Math.PI);
+                double dist = Math.Sqrt((deltaX * deltaX) + (deltaY * deltaY)) * 10000;
+                if (Angle <= 0)
+                {
+                    Angle = Angle + 360;
+                }
+
+                if (Angle > 360)
+                {
+                    Angle = Angle - 360;
+                }
+
+                int index = Convert.ToInt32(Angle);
+
+                if (index == 360)
+                {
+                    index = 0;
+                }
+                if (dist > maxDist[index, 0])
+                {
+                    maxDist[index, 0] = dist;
+                    maxDist[index, 1] = rownum;
+                    maxDist[index, 2] = colnum;
+                }
+
+                if (dist > 0.1)
+                {
+                    if (dist < minDist[index, 0])
+                    {
+                        minDist[index, 0] = dist;
+                        minDist[index, 1] = rownum;
+                        minDist[index, 2] = colnum;
+                    }
+
+                }
+                switch (avgDistIndex)
+                {
+                    case 0:
+                        avgDist[index, 0] = v.Lat;
+                        avgDist[index, 1] = v.Lng;
+                        break;
+
+                    case 1:
+                        avgDist[index, 2] = v.Lat;
+                        avgDist[index, 3] = v.Lng;
+                        break;
+
+                    case 2:
+                        avgDist[index, 4] = v.Lat;
+                        avgDist[index, 5] = v.Lng;
+                        break;
+
+                    case 3:
+                        avgDist[index, 6] = v.Lat;
+                        avgDist[index, 7] = v.Lng;
+                        break;
+
+                    case 4:
+                        avgDist[index, 8] = v.Lat;
+                        avgDist[index, 9] = v.Lng;
+                        break;
+
+                }
+
+                fireArray[rownum, colnum] = true;
+                int trueIndex = colnum + rownum * gridSize;
+                fireTrack[trueIndex, 1] = fileIndex;
+
+            }
+            fireBound.Markers.Clear();
+            PlotBound(3);
+        }
+
+        public void PlotBound(int pxSize)
+        {
+            var bcell = new PointLatLng();
+            var acell = new PointLatLng();
+
+            for (int i = 0; i < angGranularity; i++)
+            {
+                //Plot Outer Boundary
+                if (maxDist[i, 0] > 0.00001)
+                {
+                    bcell.Lat = Xmin + (cellCONVLat * maxDist[i, 1]);
+                    bcell.Lng = Ymin + (cellCONVLng * maxDist[i, 2]);
+                    var bpnt = new GMarkerBoundOut(bcell, pxSize, true);
+                    fireBound.Markers.Add(bpnt);
+
+                }
+                //Plot Inner Boundary
+                if (minDist[i, 0] < 500)
+                {
+                    bcell.Lat = Xmin + (cellCONVLat * minDist[i, 1]);
+                    bcell.Lng = Ymin + (cellCONVLng * minDist[i, 2]);
+                    var bpnt = new GMarkerBoundOut(bcell, pxSize, false);
+                    fireBound.Markers.Add(bpnt);
+                }
+                //Plot calculated for AVG boundary per index
+                if (avgDist[i, 0] > 0)
+                {
+                    double LatSum = avgDist[i, 0] + avgDist[i, 2] + avgDist[i, 4] + avgDist[i, 6] + avgDist[i, 8];
+                    double LngSum = avgDist[i, 1] + avgDist[i, 3] + avgDist[i, 5] + avgDist[i, 7] + avgDist[i, 9];
+                    acell.Lat = LatSum / 5.0;
+                    acell.Lng = LngSum / 5.0;
+                    var apnt = new GMarkerBoundAvg(acell, pxSize, false);
+                    fireBound.Markers.Add(apnt);
+                }
+            }
+        }
+
+
+
+        private void flowLayoutPanel1_Paint(object sender, PaintEventArgs e)
+        {
+
+        }
+
+        private void label9_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void label8_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void textBox2_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void textBox1_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void label7_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void textBox3_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void label16_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        public bool fireUpdated()
+        {
+            string[] allFiles = Directory.GetFiles(fireFolderDirectory);
+            string endFile = allFiles[allFiles.Length - 1];
+            string endFname = System.IO.Path.GetFileNameWithoutExtension(endFile);
+            string endIndex = endFname.Substring(3);
+            int EndNumber = Int32.Parse(endIndex);
+            if (EndNumber == lastFileLoaded)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        private void BUT_loadFire_Click(object sender, EventArgs e)
+        {
+            BUT_clearFire_Click(sender, e);
+            fireWindowSize = (Int32.Parse(TXT_fireWindow.Text));
+            fireWindowUpdate = (Int32.Parse(TXT_fireUpdate.Text));
+
+            using (OpenFileDialog fd = new OpenFileDialog())
+            {
+                fd.Filter = "All Supported Types|*.txt";
+                if (Directory.Exists(Settings.Instance["FireFileDirectory"] ?? ""))
+                {
+                    fd.InitialDirectory = Settings.Instance["FireFileDirectory"];
+
+                }
+                DialogResult result = fd.ShowDialog();
+                if (result == DialogResult.OK)
+                {
+                    string file = fd.FileName;
+                    string dpath = System.IO.Path.GetDirectoryName(file);
+                    fireFolderDirectory = dpath;
+                    if (File.Exists(file))
+                    {
+                        //Read the first file
+                        var cmds = FireFile.ReadFireSimFile(file);
+                        getFireCenterPreLim(file);
+                        PointLatLng newCenter = new PointLatLng();
+                        newCenter.Lat = double.Parse(TXT_homelat.Text);
+                        newCenter.Lng = double.Parse(TXT_homelng.Text);
+
+
+                        //double cellMult = gridMax / gridSize;
+                        cellCONVLat = meterToDegLat * gridMax / gridSize;
+                        cellCONVLng = meterToDegLng * gridMax / gridSize;
+
+                        Xmin = newCenter.Lat - (gridSize / 2 * cellCONVLat);
+                        Ymin = newCenter.Lng - (gridSize / 2 * cellCONVLng);
+
+                        //MessageBox.Show(Xmin.ToString());
+
+                        MainMap.Position = newCenter;
+
+                        threadFire tf = new threadFire();
+                        Thread newThread = new Thread(tf.threadWork);
+                        newThread.Start(file);
+                        Thread checkNewFiles = new Thread(tf.doWork);
+                        checkNewFiles.Start();
+
+                    }
+                }
+            }
+        }
+
+        public void getFireCenterPreLim(string file)
+        {
+            //Get File directory and name information
+            string dpath = System.IO.Path.GetDirectoryName(file);
+            string fname = System.IO.Path.GetFileNameWithoutExtension(file);
+            string startIndex = fname.Substring(3);
+            string[] allFiles = Directory.GetFiles(dpath);
+            string endFile = allFiles[allFiles.Length - 1];
+            string endFname = System.IO.Path.GetFileNameWithoutExtension(endFile);
+            string endIndex = endFname.Substring(3);
+            int EndNumber = Int32.Parse(endIndex);
+            int Ind = Int32.Parse(startIndex);
+            int start = Ind;
+
+            //Assume Code naming protocols stay the same
+            string newFile = dpath + "\\Loc" + Ind.ToString() + ".txt";
+            string startFile = dpath + "\\Loc" + start.ToString() + ".txt";
+
+            //Initialize parameters for calculating the center
+            int count = 0;
+            double LatAvg = 0;
+            double LngAvg = 0;
+            double LatSingleAvg = 0;
+            double LngSingleAvg = 0;
+            double LatCompAvg = 0;
+            double LngCompAvg = 0;
+            int iterNumber = 0;
+            while (iterNumber < EndNumber - start)
+            {
+                iterNumber++;
+                if (File.Exists(newFile))
+                {
+                    //Read the file
+                    var cmds = FireFile.ReadFireSimFile(newFile);
+                    foreach (FireWP temp in cmds)
+                    {
+                        count++;
+                        LatAvg = temp.lat + LatAvg;
+                        LngAvg = temp.lng + LngAvg;
+                        if (count == 2)
+                        {
+                            //MessageBox.Show(LatAvg.ToString());
+                            //MessageBox.Show(LngAvg.ToString());
+                        }
+                    }
+                    LatSingleAvg = LatAvg / count;
+                    LngSingleAvg = LngAvg / count;
+
+                    //MessageBox.Show(LatSingleAvg.ToString());
+                }
+                Ind++;
+                newFile = dpath + "\\Loc" + Ind.ToString() + ".txt";
+                LatCompAvg = LatCompAvg + LatSingleAvg;
+                LngCompAvg = LngCompAvg + LngSingleAvg;
+            }
+
+            LatCompAvg = LatCompAvg / iterNumber;
+            LngCompAvg = LngCompAvg / iterNumber;
+            //MessageBox.Show(LatCompAvg.ToString());
+            TXT_homelat.Text = LatCompAvg.ToString();
+            TXT_homelng.Text = LngCompAvg.ToString();
+
+            MessageBox.Show("Calculated New Fire Center");
+        }
+
+
+
+        public void FireFiltering(List<PointLatLng> temp, int fileIndex)
+        {
+            //Code to determine whether or not to use the file loaded
+
+            int count = 0;
+            double LatTotalSum = 0;
+            double LngTotalSum = 0;
+            double avgSumAngle = 0;
+
+            //add each Point
+            foreach (PointLatLng v in temp)
+            {
+                count++;
+                //Calculate Differences
+                double dltLat = ((v.Lat - Xmin) / cellCONVLat);
+                double dltLng = ((v.Lng - Ymin) / cellCONVLng);
+                //
+                int rownum = Convert.ToInt32(dltLat);
+                int colnum = Convert.ToInt32(dltLng);
+
+                double deltaX = v.Lat - FireCenter.Lat;
+                double deltaY = v.Lng - FireCenter.Lng;
+
+                //Calculate the angle
+                double angFactor = angGranularity / 360;
+                double Angle = Math.Atan2(deltaY, deltaX) * (180 / Math.PI);
+
+                LatTotalSum = LatTotalSum + v.Lat;
+                LngTotalSum = LngTotalSum + v.Lng;
+                avgSumAngle = avgSumAngle + Angle;
+            }
+            //Calculate the averages
+            double avgLat = LatTotalSum / count.ConvertToDouble();
+            double avgLng = LngTotalSum / count.ConvertToDouble();
+            double avgAngle = avgSumAngle / count.ConvertToDouble();
+            //tArray includes the average Lat, Lng, and Angle.  Angle is not currently used in the filtering process
+            double[] tArray = new double[3];
+            tArray[0] = avgLat;
+            tArray[1] = avgLng;
+            tArray[2] = avgAngle;
+
+            if (!fireCenterVals.ContainsKey(fileIndex))
+            {
+                fireCenterVals.Add(fileIndex, tArray);
+            }
+
+
+
+
+        }
+
+        public void plotOldreColor(int pxSize)
+        {
+            for (int i = 0; i < gridSize; i++)
+            {
+                for (int j = 0; j < gridSize; j++)
+                {
+                    if (fireArrayPrev[i, j] == true)
+                    {
+                        if (fireArray[i, j] == false)
+                        {
+                            var fcell = new PointLatLng();
+                            fcell.Lat = Xmin + (cellCONVLat * i);
+                            fcell.Lng = Ymin + (cellCONVLng * j);
+                            var pnt = new GMarkerPoint(fcell, pxSize, 2);
+                            fireMarkersNew.Markers.Add(pnt);
+                            //MessageBox.Show("breakpoint");
+                        }
+                    }
+                    if (fireArray[i, j] == true)
+                    {
+                        var fcell = new PointLatLng();
+                        fcell.Lat = Xmin + (cellCONVLat * i);
+                        fcell.Lng = Ymin + (cellCONVLng * j);
+                        var pnt = new GMarkerPoint(fcell, pxSize, 1);
+                        fireMarkersNew.Markers.Add(pnt);
+                    }
+                }
+            }
+        }
+
+        public void PlotFireNew(int pxSize)
+        {
+            double cellSizeLT = cellCONVLat;
+            double cellSizeLNG = cellCONVLng;
+
+            fireLastVisit = (Int32.Parse(TXT_lastVisit.Text));
+            if (!firstLoad)
+            {
+                for (int i = 0; i < gridSize; i++)
+                {
+                    for (int j = 0; j < gridSize; j++)
+                    {
+                        if (fireArray[i, j] == true)
+                        {
+                            fireArrayNew[i, j] = true;
+                            var fcell = new PointLatLng();
+                            fcell.Lat = Xmin + (cellSizeLT * i);
+                            fcell.Lng = Ymin + (cellSizeLNG * j);
+                            int refIdx = j + i * gridSize;
+                            int lastUpdate = fireTrack[refIdx, 1];
+                            if ((currFilePlot - lastUpdate) > fireLastVisit)
+                            {
+                                var pnt = new GMarkerPoint(fcell, pxSize, 2);
+                                fireMarkersNew.Markers.Add(pnt);
+                                //MessageBox.Show("breakpoint");
+                            }
+                            else
+                            {
+                                var pnt = new GMarkerPoint(fcell, pxSize, 1);
+                                fireMarkersNew.Markers.Add(pnt);
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                for (int i = 0; i < gridSize; i++)
+                {
+                    for (int j = 0; j < gridSize; j++)
+                    {
+                        if (fireArrayNew[i, j] == false)
+                        {
+                            if (fireArray[i, j] == true)
+                            {
+                                fireArrayNew[i, j] = true;
+                                var fcell = new PointLatLng();
+                                fcell.Lat = Xmin + (cellSizeLT * i);
+                                fcell.Lng = Ymin + (cellSizeLNG * j);
+                                int refIdx = j + i * gridSize;
+                                int lastUpdate = fireTrack[refIdx, 1];
+                                var pnt = new GMarkerPoint(fcell, pxSize, 1);
+                                fireMarkersNew.Markers.Add(pnt);
+
+
+                            }
+                        }
+                        else
+                        {
+                            var fcell = new PointLatLng();
+                            fcell.Lat = Xmin + (cellSizeLT * i);
+                            fcell.Lng = Ymin + (cellSizeLNG * j);
+                            int refIdx = j + i * gridSize;
+                            int lastUpdate = fireTrack[refIdx, 1];
+                            if ((currFilePlot - lastUpdate) > fireLastVisit)
+                            {
+                                fireArrayPrev[i, j] = true;
+                                fireArray[i, j] = false;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        public void RemoveDiscretizeFire(List<PointLatLng> temp)
+        {
+            FireCenter.Lat = (double.Parse(TXT_homelat.Text));
+            FireCenter.Lng = (double.Parse(TXT_homelng.Text));
+            foreach (PointLatLng v in temp)
+            {
+                double dltLat = ((v.Lat - Xmin) / cellCONVLat);
+                double dltLng = ((v.Lng - Ymin) / cellCONVLng);
+
+                int rownum = Convert.ToInt32(dltLat);
+                int colnum = Convert.ToInt32(dltLng);
+
+                if (rownum >= gridSize)
+                {
+                    rownum = gridSize - 1;
+
+                }
+                if (colnum >= gridSize)
+                {
+                    colnum = gridSize - 1;
+                }
+                double deltaX = v.Lat - FireCenter.Lat;
+                double deltaY = v.Lng - FireCenter.Lng;
+
+                fireArray[rownum, colnum] = false;
+            }
+        }
+
+        public class threadFire
+        {
+            public void doWork()
+            {
+                var a = new threadFire();
+                FlightPlanner FPInstance = FlightPlanner.instance;
+                Thread.Sleep(30000);
+                //Checks to see if the fire is updated
+                if (FPInstance.keepCheckFire)
+                {
+                    if (FPInstance.fireUpdated())
+                    {
+                        doWork();
+                    }
+                    else
+                    {
+                        a.threadWork(FPInstance.lastFileRead);
+                        doWork();
+                    }
+                }
+
+
+            }
+            public void threadWork(object data)
+            {
+                var a = new threadFire();
+                FlightPlanner FPInstance = FlightPlanner.instance;
+                string file = data.ToString();
+                FPInstance.keepCheckFire = true;
+
+                if (File.Exists(file))
+                {
+                    //Get File Directory
+                    string dpath = System.IO.Path.GetDirectoryName(file);
+                    //Get File Name
+                    string fname = System.IO.Path.GetFileNameWithoutExtension(file);
+                    //Get file index
+                    string startIndex = fname.Substring(3);
+                    //Get all Files of Directory
+                    string[] allFiles = Directory.GetFiles(dpath);
+                    string endFile = allFiles[allFiles.Length - 1];
+                    string endFname = System.IO.Path.GetFileNameWithoutExtension(endFile);
+                    string endIndex = endFname.Substring(3);
+                    int EndNumber = Int32.Parse(endIndex);
+                    //Pull parameters
+                    int windowSize = FPInstance.fireWindowSize;
+                    int fireUpdateValue = FPInstance.fireWindowUpdate;
+                    double degDiff = FPInstance.minDegDiff;
+                    FPInstance.lastFileLoaded = EndNumber;
+                    int filesFiltered = 0;
+                    int filesLoaded = 0;
+                    int fileUpdateCount = 0;
+                    int Ind = Int32.Parse(startIndex);
+                    int start = Ind;
+                    string newFile = dpath + "\\Loc" + Ind.ToString() + ".txt";
+                    string startFile = dpath + "\\Loc" + start.ToString() + ".txt";
+                    bool startRemove = false;
+                    FPInstance.firstLoad = false;
+                    FPInstance.fireBound.Markers.Clear();
+                    while (Ind < EndNumber)
+                    {
+                        if ((Ind - start) < windowSize)
+                        {
+                            //Do Nothing
+                        }
+                        else
+                        {
+                            startRemove = true;
+                        }
+                        if (File.Exists(newFile))
+                        {
+                            //Update every 500 ms
+                            FPInstance.currFilePlot = Ind;
+                            Thread.Sleep(500);
+                            var cmds = FireFile.ReadFireSimFile(newFile);
+                            filesLoaded++;
+                            List<PointLatLng> currentFirePoints = new List<PointLatLng>();
+                            fileUpdateCount++;
+                            foreach (FireWP temp in cmds)
+                            {
+                                currentFirePoints.Add(new PointLatLngAlt(double.Parse(temp.lat.ToString()),
+                                                                        double.Parse(temp.lng.ToString())));
+
+                                var mpnt = new PointLatLng();
+                                mpnt.Lat = temp.lat;
+                                mpnt.Lng = temp.lng;
+
+
+                            }
+
+                            int plotValue = 0;
+                            FPInstance.FireFiltering(currentFirePoints, Ind);
+                            //If Index Exists
+                            if (FPInstance.fireCenterVals.TryGetValue(Ind, out double[] t1value))
+                            {
+                                if (FPInstance.fireCenterVals.TryGetValue(Ind - 1, out double[] t2value))
+                                {
+                                    //If difference is within range
+                                    if ((Math.Abs(t1value[0] - t2value[0]) < degDiff))
+                                    {
+                                        //Avg Lattitude difference
+                                        plotValue++;
+                                    }
+                                    if (Math.Abs(t1value[1] - t2value[1]) < degDiff)
+                                    {
+                                        //Avg Longitude difference
+                                        plotValue++;
+                                    }
+
+                                }
+                                else
+                                {
+                                    plotValue = 3;
+                                }
+                            }
+                            //If the minimum plot value is reached, discretize the points
+                            if (plotValue >= 2)
+                            {
+                                FPInstance.DiscretizeFire(currentFirePoints, Ind);
+                            }
+                            else
+                            {
+                                filesFiltered++;
+                            }
+                            FPInstance.PlotFireNew(2);
+
+                            FPInstance.firstLoad = true;
+                            if ((fileUpdateCount % fireUpdateValue) == 0)
+                            {
+                                FPInstance.fireMarkersNew.Clear();
+                                FPInstance.plotOldreColor(2);
+                            }
+
+                        }
+                        if (startRemove)
+                        {
+                            //Code to remove files outside of the window
+                            if (File.Exists(startFile))
+                            {
+                                Thread.Sleep(150);
+                                var cmds = FireFile.ReadFireSimFile(startFile);
+                                List<PointLatLng> oldFirepoints = new List<PointLatLng>();
+
+                                foreach (FireWP temp in cmds)
+                                {
+                                    oldFirepoints.Add(new PointLatLngAlt(double.Parse(temp.lat.ToString()),
+                                    double.Parse(temp.lng.ToString()),
+                                    double.Parse(temp.alt.ToString())));
+
+                                }
+                                FPInstance.RemoveDiscretizeFire(oldFirepoints);
+                                FPInstance.PlotFireNew(2);
+                            }
+                            start++;
+                            startFile = dpath + "\\Loc" + start.ToString() + ".txt";
+
+                        }
+                        Ind++;
+                        newFile = dpath + "\\Loc" + Ind.ToString() + ".txt";
+                        FPInstance.lastFileRead = newFile;
+                    }
+
+
+
+                    FPInstance.fireMarkersNew.Clear();
+                    FPInstance.plotOldreColor(2);
+                    string sumInfo = filesLoaded.ToString() + "files loaded and " + filesFiltered.ToString() + "files filtered";
+                    MessageBox.Show(sumInfo, "Load Complete");
+                }
+
+            }
+        }
+
+
+        public void drawFireBoundGrid(List<PointLatLngAlt> list)
+        {
+            gridBoundBox.Points.Clear();
+            fireGridBound.Clear();
+
+            int tag = 0;
+            list.ForEach(x =>
+            {
+                tag++;
+                gridBoundBox.Points.Add(x);
+            });
+
+            fireGridBound.Polygons.Add(gridBoundBox);
+            MainMap.UpdatePolygonLocalPosition(gridBoundBox);
+
+            {
+                foreach (var pointLatLngAlt in gridBoundBox.Points.CloseLoop().PrevNowNext())
+                {
+                    var now = pointLatLngAlt.Item2;
+                    var next = pointLatLngAlt.Item3;
+
+                    if (now == null || next == null)
+                        continue;
+
+                    var mid = new PointLatLngAlt((now.Lat + next.Lat) / 2, (now.Lng + next.Lng) / 2, 0);
+
+                }
+            }
+
+            MainMap.Invalidate();
+        }
+
+        private void TXT_lastVisit_TextChanged(object sender, EventArgs e)
+        {
+            if (TXT_lastVisit.Text.Length != 0)
+            {
+                fireLastVisit = (Int32.Parse(TXT_lastVisit.Text));
+            }
+
+        }
+
+        private void TXT_gridSize_TextChanged(object sender, EventArgs e)
+        {
+            //Pull values for new Grid Size
+            if (TXT_gridSize.Text.Length != 0)
+            {
+                gridSize = (Int32.Parse(TXT_gridSize.Text));
+                double cellMult = gridMax / gridSize;
+                cellCONVLat = meterToDegLat * cellMult;
+                cellCONVLng = meterToDegLat * cellMult;
+
+                Xmin = FireCenter.Lat - (gridSize / 2 * cellCONVLat);
+                Ymin = FireCenter.Lng - (gridSize / 2 * cellCONVLng);
+
+                fireArray = new bool[gridSize, gridSize];
+                fireArrayPrev = new bool[gridSize, gridSize];
+                fireArrayNew = new bool[gridSize, gridSize];
+                fireTrack = new int[gridSize * gridSize, 2];
+            }
+        }
+
+        private void BUT_clearFire_Click(object sender, EventArgs e)
+        {
+            fireBound.Markers.Clear();
+            fireMarkersNew.Markers.Clear();
+            fireMarkers.Markers.Clear();
+
+            gridSize = (Int32.Parse(TXT_gridSize.Text));
+            gridMax = (Int32.Parse(TXT_gridMax.Text));
+            double cellMult = gridMax / gridSize;
+            cellCONVLat = meterToDegLat * cellMult;
+            cellCONVLng = meterToDegLng * cellMult;
+
+            Xmin = FireCenter.Lat - (gridSize / 2 * cellCONVLat);
+            Ymin = FireCenter.Lng - (gridSize / 2 * cellCONVLng);
+
+            fireArray = new bool[gridSize, gridSize];
+            fireArrayPrev = new bool[gridSize, gridSize];
+            fireArrayNew = new bool[gridSize, gridSize];
+            fireTrack = new int[gridSize * gridSize, 2];
+            avgDist = new double[360, 10];
+            fireCenterVals.Clear();
+            for (int i = 0; i < 360; i++)
+            {
+                maxDist[i, 0] = 0.000001;
+                minDist[i, 0] = 500;
+                maxDist[i, 1] = 0.000001;
+                minDist[i, 1] = 500;
+            }
+        }
+
+        private void TXT_fireFilter_TextChanged(object sender, EventArgs e)
+        {
+            //Pull values for new Grid Size
+            if (TXT_fireFilter.Text.Length != 0)
+            {
+                minDegDiff = double.Parse(TXT_fireFilter.Text);
+            }
+        }
+
+        private void TXT_fireUpdate_TextChanged(object sender, EventArgs e)
+        {
+            if (TXT_fireUpdate.Text.Length != 0)
+            {
+                fireWindowUpdate = (Int32.Parse(TXT_fireUpdate.Text));
+            }
+        }
+
+        private void BUT_toggleGrid_Click(object sender, EventArgs e)
+        {
+            //If grid is not active, turn it on.
+            if (!gridBoxActive)
+            {
+                gridSize = (Int32.Parse(TXT_gridSize.Text));
+                gridMax = (Int32.Parse(TXT_gridMax.Text));
+                double cellCONVLat = meterToDegLng * gridMax / gridSize;
+                double cellCONVLng = meterToDegLat * gridMax / gridSize;
+                //Create points for upper left, right, and bottom left,right for grid boundary
+                PointLatLng UL, UR, BL, BR;
+                UL = new PointLatLng();
+                UR = new PointLatLng();
+                BL = new PointLatLng();
+                BR = new PointLatLng();
+
+                List<PointLatLngAlt> fireBox = new List<PointLatLngAlt>();
+
+                FireCenter.Lat = (double.Parse(TXT_homelat.Text));
+                FireCenter.Lng = (double.Parse(TXT_homelng.Text));
+
+                Xmin = FireCenter.Lat - (gridSize / 2 * cellCONVLat);
+                Ymin = FireCenter.Lng - (gridSize / 2 * cellCONVLng);
+
+
+                double Xmax = Xmin + gridSize * cellCONVLat;
+                double Ymax = Ymin + gridSize * cellCONVLng;
+
+                UL.Lat = Xmin;
+                UL.Lng = Ymax;
+                UR.Lat = Xmax;
+                UR.Lng = Ymax;
+                BL.Lat = Xmin;
+                BL.Lng = Ymin;
+                BR.Lat = Xmax;
+                BR.Lng = Ymin;
+
+                fireBox.Add(UL);
+                fireBox.Add(BL);
+                fireBox.Add(BR);
+                fireBox.Add(UR);
+
+                drawFireBoundGrid(fireBox);
+                gridBoxActive = true;
+            }
+            //Turn off Grid box if it is active
+            else
+            {
+                fireGridBound.Clear();
+                gridBoxActive = false;
+            }
+
+
+        }
+
+        private void BUT_stopRead_Click(object sender, EventArgs e)
+        {
+            keepCheckFire = false;
+        }
+
+
+        private void TXT_gridMax_TextChanged(object sender, EventArgs e)
+        {
+            if (TXT_gridMax.Text.Length != 0)
+            {
+                gridMax = (Int32.Parse(TXT_gridMax.Text));
+            }
+        }
+
+
+        private void TXT_fireWindow_TextChanged(object sender, EventArgs e)
+        {
+            if (TXT_fireWindow.Text.Length != 0)
+            {
+                fireWindowSize = (Int32.Parse(TXT_fireWindow.Text));
+            }
+        }
+
+
     }
 }

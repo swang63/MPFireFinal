@@ -770,6 +770,11 @@
     <Compile Include="Controls\FollowMe.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="FireFiles\GMarkerBoundAvg.cs" />
+    <Compile Include="FireFiles\GMarkerBoundOut.cs" />
+    <Compile Include="FireFiles\GMarkerCross.cs" />
+    <Compile Include="FireFiles\GMarkerGoogle.cs" />
+    <Compile Include="FireFiles\GMarkerPoint.cs" />
     <Compile Include="GCSViews\ConfigurationView\ConfigADSB.cs">
       <SubType>UserControl</SubType>
     </Compile>
