@@ -177,3 +177,5 @@ Steps to run the software are below
 
 The map displays the inner boundary of the fire shape with a yellow X, the average fire shape value from the last 5 values taken for that angle in a blue shape, and the outer boundary of the fire with a white X.
 
+Link to file detailing the methods contained in fire additions
+https://github.com/swang63/MPFireFinal/blob/master/CODE%20DESCRIPTION.docx
