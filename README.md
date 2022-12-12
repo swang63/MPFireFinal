@@ -179,3 +179,6 @@ The map displays the inner boundary of the fire shape with a yellow X, the avera
 
 Link to file detailing the methods contained in fire additions
 https://github.com/swang63/MPFireFinal/blob/master/CODE%20DESCRIPTION.docx
+
+Short Demo Video
+https://youtu.be/YNVGXtIrVrQ
