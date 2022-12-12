@@ -38,7 +38,7 @@ Currently VSCode with C# plugin is able to parse the code but cannot build.
 #### 2. Get the code
 
 If you get Visual Studio Community, you should be able to use Git from the IDE. 
-Clone `https://github.com/swang63/MPFireFinal.git` to get the full code.
+Clone `https://github.com/swang63/MPFireFinal.git` to get the full code specific to the version.
 
 In case you didn't install an IDE, you will need to manually install Git. Please follow instruction in https://ardupilot.org/dev/docs/where-to-get-the-code.html#downloading-the-code-using-git
 
