@@ -38,7 +38,7 @@ Currently VSCode with C# plugin is able to parse the code but cannot build.
 #### 2. Get the code
 
 If you get Visual Studio Community, you should be able to use Git from the IDE. 
-Clone `https://github.com/ArduPilot/MissionPlanner.git` to get the full code.
+Clone `https://github.com/swang63/MPFireFinal.git` to get the full code.
 
 In case you didn't install an IDE, you will need to manually install Git. Please follow instruction in https://ardupilot.org/dev/docs/where-to-get-the-code.html#downloading-the-code-using-git
 
@@ -141,7 +141,7 @@ A CA cert is installed to the root store and used to sign the windows serial por
 ## MISSION PLANNER FIRE CHANGES
 Software Code Parameters utilized for running the software.  The parameters below are viewable through on the Plan UI page as indicated by the photo below.
 
-Downloadable packaged executable is available [here](https://drive.google.com/file/d/151-bQHUIuAc0FLrAP546ekRpFwh3Swbo/view?usp=sharing)
+Downloadable packaged executable is available after compiling from Visual Studio
 
 ![Planner UI](https://github.com/swang63/MissionPlanner/blob/Test2/PlanUI.JPG?raw=true)
 
