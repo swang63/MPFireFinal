@@ -137,3 +137,35 @@ on linux this is in /home/<user>/.local/share/Mission Planner/
 A CA cert is installed to the root store and used to sign the windows serial port drivers, and is installed as part of the MSI install.
 
 [![FlagCounter](https://s01.flagcounter.com/count2/A4bA/bg_FFFFFF/txt_000000/border_CCCCCC/columns_8/maxflags_40/viewers_0/labels_1/pageviews_0/flags_0/percent_0/)](https://info.flagcounter.com/A4bA)
+
+
+MISSION PLANNER FIRE CHANGES
+Software Code Parameters utilized for running the software. The parameters below are viewable through on the Plan UI page as indicated by the photo below.
+
+Downloadable packaged executable is available here
+
+Planner UI
+
+Window: This value determines the size of the window of fire files to keep displayed on the map. This window refers to each of the fire map “LOC######.TXT” where the number corresponds to a particular second of the fire as observed by the UAV. The window thereby is set in seconds from last file to display. 300 seconds or 5 minutes is set as the default value
+
+Update: This value will update and reload the fireMap upon the number of files loaded. Default value is set to 10. This will update the map for values of time since last visit metrics for display.
+
+Filter Value: This value is set to 0.001 by default. This value is the measure in degrees. This filter value will include files of numerical order if the average latitude and longitude difference between the files is less than this value. This will remove files in which the projected fire map appears to “jump” a far distance. Files that have no preceding location file will be ignored so if there is a jump in the number of the location file. The subsequent files will NOT be filtered.
+
+Last Visit: This will display fire files that exceed the time since the last visit in a green color. This parameter is set in seconds and is defaulted to 60 seconds.
+
+Grid Size: This is the size in which the data is discretized from the fire files. Default grid size is set to 500x500. If there are issues with lag regarding the map interface and number of markers.
+
+Grid Max: This is the size of the box that bounds the fire values within a grid for discretization of the fire shape. The grid max size is in meters and will produce a box of this size for bounding the fire shape. A UI message box will occur indicating that fire points have been detected outside of the grid max. In this instance, please increase the paramater to allow for the full fire shape to fit.
+
+Running the software
+Fire Toolbar
+
+Steps to run the software are below
+
+Select the Plan Tab
+Choose the parmaeters for viewing the fire files. The default values are shown in the figure above.
+Click the Toggle Grid button to toggle the maximum grid size of the fire shape.
+Click the Load Fire Folder Button. This will allow you to select the directory for where the fire files are located. If files are added to this directory, they will automatically upload and display new information every 30 seconds.
+Click the Stop Reading button to stop reading new incoming files.
+The map displays the inner boundary of the fire shape with a yellow X, the average fire shape value from the last 5 values taken for that angle in a blue shape, and the outer boundary of the fire with a white X.
